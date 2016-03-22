@@ -1,0 +1,99 @@
+# Copyright (c) 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+---
+
+swagger: '2.0'
+
+info:
+  title: Kubernetes on Trusted Analytics Platform
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: '{{ version }}'
+
+paths:
+  /clusters:
+    get:
+      responses:
+        200:
+          description: Fetch a list of clusters
+          schema:
+            $ref: '#/definitions/Clusters'
+      security:
+        - basic: []
+  '/clusters/{cluster_name}':
+    put:
+      parameters:
+        - name: cluster_name
+          in: path
+          required: true
+          type: string
+      responses:
+        202:
+          description: Create a new cluster
+        409:
+          description: Create a new cluster
+      security:
+        - basic: []
+    get:
+      parameters:
+        - name: cluster_name
+          in: path
+          required: true
+          type: string
+      responses:
+        200:
+          description: Fetch a cluster by name
+          schema:
+            $ref: '#/definitions/Cluster'
+        204:
+          description: Fetch a cluster by name
+        404:
+          description: Fetch a cluster by name
+      security:
+        - basic: []
+    delete:
+      parameters:
+        - name: cluster_name
+          in: path
+          required: true
+          type: string
+      responses:
+        204:
+          description: Delete a cluster by name
+      security:
+        - basic: []
+
+definitions:
+  Cluster:
+    type: object
+    properties:
+      cluster_name:
+        type: string
+      api_server:
+        type: string
+      username:
+        type: string
+      password:
+        type: string
+  Clusters:
+    type: array
+    items:
+      $ref: '#/definitions/Cluster'
+
+securityDefinitions:
+  basic:
+    type: basic
