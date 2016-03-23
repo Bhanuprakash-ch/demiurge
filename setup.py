@@ -26,6 +26,7 @@ setup(
         'boto3',
         'click',
         'connexion',
+        'fauxfactory',
         'Flask-HTTPAuth',
         'troposphere',
         ],

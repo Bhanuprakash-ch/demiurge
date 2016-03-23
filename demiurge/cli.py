@@ -19,6 +19,7 @@ import logging
 import click
 import connexion
 from connexion.resolver import RestyResolver
+import fauxfactory
 from flask_httpauth import HTTPBasicAuth
 
 from . import __version__
@@ -62,12 +63,15 @@ STACK_PARAMETERS = []
 def cli(username, password, port, debug, **kwargs):
     USERS[username] = password
 
+    password = fauxfactory.gen_string('alphanumeric', 16)
+
     for keyword in ['region_name', 'aws_access_key_id', 'aws_secret_access_key']:
         BOTO3_CLIENT_KWARGS[keyword] = kwargs[keyword]
 
     STACK_PARAMETERS.append({'ParameterKey': 'VPC', 'ParameterValue': kwargs['vpc']})
     STACK_PARAMETERS.append({'ParameterKey': 'Subnet', 'ParameterValue': kwargs['subnet']})
     STACK_PARAMETERS.append({'ParameterKey': 'KeyName', 'ParameterValue': kwargs['key_name']})
+    STACK_PARAMETERS.append({'ParameterKey': 'Password', 'ParameterValue': password})
 
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
