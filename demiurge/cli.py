@@ -28,24 +28,35 @@ AUTH = HTTPBasicAuth()
 USERS = {}
 
 @AUTH.get_password
-def get_pw(username):
-    if username in USERS:
-        return USERS.get(username)
-    else:
-        return None
+def get_password(username):
+    return USERS.get(username)
 
 BOTO3_CLIENT_KWARGS = {}
 STACK_PARAMETERS = []
 
 @click.command()
-@click.option('--username', envvar='USERNAME', required=True)
-@click.option('--password', envvar='PASSWORD', required=True)
-@click.option('--region-name', envvar='AWS_DEFAULT_REGION', default='us-west-2')
-@click.option('--aws-access-key-id', envvar='AWS_ACCESS_KEY_ID')
-@click.option('--aws-secret-access-key', envvar='AWS_SECRET_ACCESS_KEY')
-@click.option('--vpc', envvar='VPC', required=True)
-@click.option('--subnet', envvar='SUBNET', required=True)
-@click.option('--key-name', envvar='KEY_NAME', required=True)
+@click.option('--username', envvar='USERNAME', required=True,
+              help='Username for basic authentication.')
+@click.option('--password', envvar='PASSWORD', required=True,
+              help='Password for basic authentication.')
+
+@click.option('--region-name', envvar='AWS_DEFAULT_REGION', default='us-west-2',
+              help='The region to use.')
+@click.option('--aws-access-key-id', envvar='AWS_ACCESS_KEY_ID',
+              help='The AWS Access Key ID.')
+@click.option('--aws-secret-access-key', envvar='AWS_SECRET_ACCESS_KEY',
+              help='The AWS Secret Access Key.')
+
+@click.option('--vpc', envvar='VPC', required=True,
+              help='VPC ID of your exsiting Virtual Private Cloud (VPC) where you want to deploy '
+                   'Kubernetes clusters.')
+@click.option('--subnet', envvar='SUBNET', required=True,
+              help='Subnet ID of the existing subnet in your VPC where you want to deploy '
+                   'Kubernetes nodes.')
+@click.option('--key-name', envvar='KEY_NAME', required=True,
+              help='Name of an existing EC2 Key Pair. Kubernetes instances will launch with '
+                   'this Key Pair.')
+
 @click.option('--debug/--no-debug', '-d', default=False)
 @click.option('--port', '-p', envvar='PORT', default=8080)
 def cli(username, password, port, debug, **kwargs):
@@ -60,9 +71,9 @@ def cli(username, password, port, debug, **kwargs):
 
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
-    app = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__},
-                        debug=debug)
-    app.add_api('clusters.yaml', resolver=RestyResolver('kube_tap.api'))
+    app = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__})
+    app.debug = debug
+    app.add_api('clusters.yaml', resolver=RestyResolver('demiurge.api'))
     app.run(port=port)
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4 colorcolumn=100
