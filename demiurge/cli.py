@@ -19,11 +19,11 @@ import logging
 import click
 import connexion
 from connexion.resolver import RestyResolver
-import fauxfactory
 from flask_httpauth import HTTPBasicAuth
 
 from . import __version__
 
+APP = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__})
 AUTH = HTTPBasicAuth()
 
 USERS = {}
@@ -48,6 +48,11 @@ STACK_PARAMETERS = []
 @click.option('--aws-secret-access-key', envvar='AWS_SECRET_ACCESS_KEY',
               help='The AWS Secret Access Key.')
 
+@click.option('--os-username', envvar='OS_USERNAME', help='Your OpenStack username.')
+@click.option('--os-password', envvar='OS_PASSWORD', help='Your OpenStack password.')
+@click.option('--os-tenant-id', envvar='OS_TENANT_ID', help='Your OpenStack tenant.')
+@click.option('--os-auth-url', envvar='OS_AUTH_URL', help='Your OpenStack auth endpoint.')
+
 @click.option('--vpc', envvar='VPC', required=True,
               help='VPC ID of your exsiting Virtual Private Cloud (VPC) where you want to deploy '
                    'Kubernetes clusters.')
@@ -60,10 +65,8 @@ STACK_PARAMETERS = []
 
 @click.option('--debug/--no-debug', '-d', default=False)
 @click.option('--port', '-p', envvar='PORT', default=8080)
-def cli(username, password, port, debug, **kwargs):
+def cli(username, password, debug, port, **kwargs):
     USERS[username] = password
-
-    password = fauxfactory.gen_string('alphanumeric', 16)
 
     for keyword in ['region_name', 'aws_access_key_id', 'aws_secret_access_key']:
         BOTO3_CLIENT_KWARGS[keyword] = kwargs[keyword]
@@ -71,13 +74,11 @@ def cli(username, password, port, debug, **kwargs):
     STACK_PARAMETERS.append({'ParameterKey': 'VPC', 'ParameterValue': kwargs['vpc']})
     STACK_PARAMETERS.append({'ParameterKey': 'Subnet', 'ParameterValue': kwargs['subnet']})
     STACK_PARAMETERS.append({'ParameterKey': 'KeyName', 'ParameterValue': kwargs['key_name']})
-    STACK_PARAMETERS.append({'ParameterKey': 'Password', 'ParameterValue': password})
 
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
-    app = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__})
-    app.debug = debug
-    app.add_api('clusters.yaml', resolver=RestyResolver('demiurge.api'))
-    app.run(port=port)
+    APP.debug = debug
+    APP.add_api('clusters.yaml', resolver=RestyResolver('demiurge.api'))
+    APP.run(port=port)
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4 colorcolumn=100

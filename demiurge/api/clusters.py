@@ -16,6 +16,7 @@
 
 import re
 import boto3
+import fauxfactory
 
 from connexion import NoContent
 from botocore.exceptions import ClientError
@@ -81,6 +82,11 @@ def put(cluster_name):
     parameters.append({
         'ParameterKey': 'ClusterName',
         'ParameterValue': cluster_name,
+        })
+
+    parameters.append({
+        'ParameterKey': 'Password',
+        'ParameterValue': fauxfactory.gen_string('alphanumeric', 16)
         })
 
     try:
