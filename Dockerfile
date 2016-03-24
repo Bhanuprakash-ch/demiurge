@@ -13,7 +13,12 @@
 # limitations under the License.
 #
 
-FROM python:2-onbuild
+FROM python:2.7-slim
 MAINTAINER Maciej Strzelecki <maciej.strzelecki@intel.com>
-CMD [ "demiurge" ]
-EXPOSE 8080
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+COPY . /usr/src/app
+RUN pip install .
+ENV PORT 8080
+ENTRYPOINT ["demiurge"]
+EXPOSE $PORT

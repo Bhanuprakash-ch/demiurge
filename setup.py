@@ -15,11 +15,10 @@
 #
 
 from setuptools import setup, find_packages
-import demiurge
 
 setup(
     name='demiurge',
-    version=demiurge.__version__,
+    version='0.1.0',
     packages=find_packages(),
     install_requires=[
         'awacs',
