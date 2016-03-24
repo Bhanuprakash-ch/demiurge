@@ -17,25 +17,13 @@
 import logging
 
 import click
-import connexion
-from connexion.resolver import RestyResolver
-from flask_httpauth import HTTPBasicAuth
 
-from . import __version__
-
-APP = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__})
-AUTH = HTTPBasicAuth()
-
-USERS = {}
-
-@AUTH.get_password
-def get_password(username):
-    return USERS.get(username)
-
-BOTO3_CLIENT_KWARGS = {}
-STACK_PARAMETERS = []
+from . import __version__, APP, APPLICATION, main
 
 @click.command()
+@click.option('--debug/--no-debug', '-d', default=False)
+@click.option('--port', '-p', envvar='PORT', default=8080)
+
 @click.option('--username', envvar='USERNAME', required=True,
               help='Username for basic authentication.')
 @click.option('--password', envvar='PASSWORD', required=True,
@@ -62,23 +50,22 @@ STACK_PARAMETERS = []
 @click.option('--key-name', envvar='KEY_NAME', required=True,
               help='Name of an existing EC2 Key Pair. Kubernetes instances will launch with '
                    'this Key Pair.')
-
-@click.option('--debug/--no-debug', '-d', default=False)
-@click.option('--port', '-p', envvar='PORT', default=8080)
-def cli(username, password, debug, port, **kwargs):
-    USERS[username] = password
-
-    for keyword in ['region_name', 'aws_access_key_id', 'aws_secret_access_key']:
-        BOTO3_CLIENT_KWARGS[keyword] = kwargs[keyword]
-
-    STACK_PARAMETERS.append({'ParameterKey': 'VPC', 'ParameterValue': kwargs['vpc']})
-    STACK_PARAMETERS.append({'ParameterKey': 'Subnet', 'ParameterValue': kwargs['subnet']})
-    STACK_PARAMETERS.append({'ParameterKey': 'KeyName', 'ParameterValue': kwargs['key_name']})
-
+def cli(debug, port, username, password, **kwargs):
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
     APP.debug = debug
-    APP.add_api('clusters.yaml', resolver=RestyResolver('demiurge.api'))
-    APP.run(port=port)
+    APP.port = port
+
+    APPLICATION.config['USERS'][username] = password
+
+    APPLICATION.config['AWS_DEFAULT_REGION_NAME'] = kwargs['region_name']
+    APPLICATION.config['AWS_ACCESS_KEY_ID'] = kwargs['aws_access_key_id']
+    APPLICATION.config['AWS_SECRET_ACCESS_KEY'] = kwargs['aws_secret_access_key']
+
+    APPLICATION.config['VPC'] = kwargs['vpc']
+    APPLICATION.config['SUBNET'] = kwargs['subnet']
+    APPLICATION.config['KEY_NAME'] = kwargs['key_name']
+
+    main()
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4 colorcolumn=100

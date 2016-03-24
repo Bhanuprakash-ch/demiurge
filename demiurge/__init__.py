@@ -14,6 +14,27 @@
 # limitations under the License.
 #
 
+import connexion
+from connexion.resolver import RestyResolver
+from flask_httpauth import HTTPBasicAuth
+
 __version__ = '0.1.0'
+
+APP = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__})
+APPLICATION = APP.app
+AUTH = HTTPBasicAuth()
+
+APPLICATION.config['USERS'] = {}
+
+@AUTH.get_password
+def get_password(username):
+    return APPLICATION.config['USERS'].get(username)
+
+def main():
+    APP.add_api('clusters.yaml', resolver=RestyResolver(__name__ + '.api'))
+    APP.run()
+
+if __name__ == '__main__':
+    main()
 
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4 colorcolumn=100

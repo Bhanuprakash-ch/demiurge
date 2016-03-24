@@ -20,11 +20,17 @@ import fauxfactory
 
 from connexion import NoContent
 from botocore.exceptions import ClientError
-from ..cli import BOTO3_CLIENT_KWARGS, AUTH, STACK_PARAMETERS
 
-CLIENT = boto3.client('cloudformation', **BOTO3_CLIENT_KWARGS)
+from .. import APPLICATION, AUTH
 
-STACK_NAME = 'TAP-Kubernetes-{cluster_name}'
+CLIENT = boto3.client(
+    'cloudformation',
+    region_name=APPLICATION.config.get('AWS_DEFAULT_REGION_NAME'),
+    aws_access_key_id=APPLICATION.config.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=APPLICATION.config.get('AWS_SECRET_ACCESS_KEY'),
+    )
+
+STACK_NAME = 'TAP-Kubernetes-{}'
 
 with file('Kubernetes.template') as template:
     TEMPLATE_BODY = template.read()
@@ -63,7 +69,7 @@ def get(cluster_name):
     response = CLIENT.describe_stacks()
 
     for stack in response['Stacks']:
-        if stack['StackName'] == STACK_NAME.format(cluster_name=cluster_name):
+        if stack['StackName'] == STACK_NAME.format(cluster_name):
             if re.match(r'(CREATE|UPDATE)_COMPLETE', stack['StackStatus']):
                 return __cluster(stack), 200
             elif re.match(r'(CREATE|UPDATE)_IN_PROGRESS', stack['StackStatus']):
@@ -77,23 +83,31 @@ def get(cluster_name):
 
 @AUTH.login_required
 def put(cluster_name):
-    parameters = STACK_PARAMETERS
-
-    parameters.append({
-        'ParameterKey': 'ClusterName',
-        'ParameterValue': cluster_name,
-        })
-
-    parameters.append({
-        'ParameterKey': 'Password',
-        'ParameterValue': fauxfactory.gen_string('alphanumeric', 16)
-        })
-
     try:
         CLIENT.create_stack(
-            StackName=STACK_NAME.format(cluster_name=cluster_name),
+            StackName=STACK_NAME.format(cluster_name),
             TemplateBody=TEMPLATE_BODY,
-            Parameters=parameters,
+            Parameters=[
+                {
+                    'ParameterKey': 'VPC',
+                    'ParameterValue': APPLICATION.config['VPC'],
+                },
+                {
+                    'ParameterKey': 'Subnet',
+                    'ParameterValue': APPLICATION.config['SUBNET']},
+                {
+                    'ParameterKey': 'KeyName',
+                    'ParameterValue': APPLICATION.config['KEY_NAME'],
+                },
+                {
+                    'ParameterKey': 'ClusterName',
+                    'ParameterValue': cluster_name,
+                },
+                {
+                    'ParameterKey': 'Password',
+                    'ParameterValue': fauxfactory.gen_string('alphanumeric', 16),
+                },
+                ],
             DisableRollback=True,
             Capabilities=[
                 'CAPABILITY_IAM',
@@ -110,7 +124,7 @@ def put(cluster_name):
 @AUTH.login_required
 def delete(cluster_name):
     CLIENT.delete_stack(
-        StackName=STACK_NAME.format(cluster_name=cluster_name),
+        StackName=STACK_NAME.format(cluster_name),
         )
 
     return NoContent, 204
