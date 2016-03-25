@@ -21,7 +21,8 @@ import fauxfactory
 from connexion import NoContent
 from botocore.exceptions import ClientError
 
-from .. import APPLICATION, AUTH
+from .. import APP, APPLICATION, AUTH
+from ..aws import TEMPLATE
 
 CLIENT = boto3.client(
     'cloudformation',
@@ -31,9 +32,6 @@ CLIENT = boto3.client(
     )
 
 STACK_NAME = 'TAP-Kubernetes-{}'
-
-with file('Kubernetes.template') as template:
-    TEMPLATE_BODY = template.read()
 
 def __cluster(stack):
     cluster = {}
@@ -86,7 +84,7 @@ def put(cluster_name):
     try:
         CLIENT.create_stack(
             StackName=STACK_NAME.format(cluster_name),
-            TemplateBody=TEMPLATE_BODY,
+            TemplateBody=TEMPLATE.to_json(),
             Parameters=[
                 {
                     'ParameterKey': 'VPC',
@@ -107,8 +105,16 @@ def put(cluster_name):
                     'ParameterKey': 'Password',
                     'ParameterValue': fauxfactory.gen_string('alphanumeric', 16),
                 },
+                {
+                    'ParameterKey': 'ConsulDC',
+                    'ParameterValue': APPLICATION.config['CONSUL_DC'],
+                },
+                {
+                    'ParameterKey': 'ConsulJoin',
+                    'ParameterValue': APPLICATION.config['CONSUL_JOIN'],
+                },
                 ],
-            DisableRollback=True,
+            DisableRollback=APP.debug,
             Capabilities=[
                 'CAPABILITY_IAM',
                 ],

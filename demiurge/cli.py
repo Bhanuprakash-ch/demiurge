@@ -50,6 +50,10 @@ from . import __version__, APP, APPLICATION, main
 @click.option('--key-name', envvar='KEY_NAME', required=True,
               help='Name of an existing EC2 Key Pair. Kubernetes instances will launch with '
                    'this Key Pair.')
+@click.option('--consul-dc', envvar='CONSUL_DC', required=True,
+              help='The datacenter in which the Consul agent is running.')
+@click.option('--consul-join', envvar='CONSUL_JOIN', required=True,
+              help='Address of another Consul agent to join.')
 def cli(debug, port, username, password, **kwargs):
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
@@ -65,6 +69,8 @@ def cli(debug, port, username, password, **kwargs):
     APPLICATION.config['VPC'] = kwargs['vpc']
     APPLICATION.config['SUBNET'] = kwargs['subnet']
     APPLICATION.config['KEY_NAME'] = kwargs['key_name']
+    APPLICATION.config['CONSUL_DC'] = kwargs['consul_dc']
+    APPLICATION.config['CONSUL_JOIN'] = kwargs['consul_join']
 
     main()
 
