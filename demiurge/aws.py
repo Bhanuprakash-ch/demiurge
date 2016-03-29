@@ -107,6 +107,12 @@ CONSUL_JOIN = TEMPLATE.add_parameter(Parameter(
     Type=STRING,
     ))
 
+DOCKER_GRAPH_SIZE = TEMPLATE.add_parameter(Parameter(
+    'DockerGraphSize',
+    Type=NUMBER,
+    Default='120',
+    ))
+
 ROLE = TEMPLATE.add_resource(iam.Role(
     'Role',
     AssumeRolePolicyDocument=awacs.aws.Policy(
@@ -254,6 +260,14 @@ API_SERVER_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadBalanc
 
 LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
     'LaunchConfiguration',
+    BlockDeviceMappings=[
+        ec2.BlockDeviceMapping(
+            DeviceName='/dev/sdb',
+            Ebs=ec2.EBSBlockDevice(
+                VolumeSize=Ref(DOCKER_GRAPH_SIZE),
+                )
+            ),
+        ],
     IamInstanceProfile=Ref(INSTANCE_PROFILE),
     ImageId=FindInMap('RegionMap', Ref(AWS_REGION), 'AMI'),
     InstanceType=Ref(INSTANCE_TYPE),
@@ -268,6 +282,36 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '    listen-client-urls: http://0.0.0.0:2379\n',
         '    listen-peer-urls: http://$private_ipv4:2380\n',
         '  units:\n',
+        '    - name: format-ephemeral.service\n',
+        '      command: start\n',
+        '      content: |\n',
+        '        [Unit]\n',
+        '        Description=Formats the ephemeral drive\n',
+        '        After=dev-xvdb.device\n',
+        '        Requires=dev-xvdb.device\n',
+        '        [Service]\n',
+        '        Type=oneshot\n',
+        '        RemainAfterExit=yes\n',
+        '        ExecStart=/usr/sbin/wipefs -f /dev/xvdb\n',
+        '        ExecStart=/usr/sbin/mkfs.ext4 -F /dev/xvdb\n',
+        '    - name: var-lib-docker.mount\n',
+        '      command: start\n',
+        '      content: |\n',
+        '        [Unit]\n',
+        '        Description=Mount ephemeral to /var/lib/docker\n',
+        '        Requires=format-ephemeral.service\n',
+        '        After=format-ephemeral.service\n',
+        '        [Mount]\n',
+        '        What=/dev/xvdb\n',
+        '        Where=/var/lib/docker\n',
+        '        Type=ext4\n',
+        '    - name: docker.service\n',
+        '      drop-ins:\n',
+        '        - name: 10-wait-docker.conf\n',
+        '          content: |\n',
+        '            [Unit]\n',
+        '            After=var-lib-docker.mount\n',
+        '            Requires=var-lib-docker.mount\n',
         '    - name: etcd-peers.service\n',
         '      command: start\n',
         '      content: |\n',
