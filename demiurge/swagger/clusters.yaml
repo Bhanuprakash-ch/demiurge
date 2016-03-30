@@ -18,7 +18,7 @@
 swagger: '2.0'
 
 info:
-  title: Kubernetes on Trusted Analytics Platform
+  title: Kubernetes Clusters Creator
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -88,6 +88,8 @@ definitions:
       username:
         type: string
       password:
+        type: string
+      consul_http_api:
         type: string
   Clusters:
     type: array

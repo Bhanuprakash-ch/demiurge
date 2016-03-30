@@ -47,6 +47,8 @@ def __cluster(stack):
     for output in stack['Outputs']:
         if output['OutputKey'] == 'APIServer':
             cluster['api_server'] = output['OutputValue']
+        if output['OutputKey'] == 'ConsulHTTPAPI':
+            cluster['consul_http_api'] = output['OutputValue']
 
     return cluster
 

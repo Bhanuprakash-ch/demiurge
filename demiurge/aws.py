@@ -255,11 +255,6 @@ API_SERVER_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadBalanc
         ),
     Listeners=[
         elasticloadbalancing.Listener(
-            LoadBalancerPort='8080',
-            InstancePort='8080',
-            Protocol='HTTP',
-            ),
-        elasticloadbalancing.Listener(
             LoadBalancerPort='6443',
             InstancePort='6443',
             Protocol='TCP',
@@ -267,6 +262,41 @@ API_SERVER_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadBalanc
         ],
     Scheme='internal',
     SecurityGroups=[Ref(API_SERVER_SECURITY_GROUP)],
+    Subnets=[Ref(SUBNET)],
+    ))
+
+CONSUL_HTTP_API_SECURITY_GROUP = TEMPLATE.add_resource(ec2.SecurityGroup(
+    'ConsulHTTPAPISecurityGroup',
+    GroupDescription='Consul HTTP API Security Group',
+    SecurityGroupIngress=[
+        ec2.SecurityGroupRule(
+            IpProtocol='tcp',
+            FromPort='8500',
+            ToPort='8500',
+            CidrIp='0.0.0.0/0',
+            ),
+        ],
+    VpcId=Ref(VPC),
+    ))
+
+CONSUL_HTTP_API_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadBalancer(
+    'ConsulHTTPAPILoadBalancer',
+    HealthCheck=elasticloadbalancing.HealthCheck(
+        Target='TCP:8500',
+        HealthyThreshold='3',
+        UnhealthyThreshold='5',
+        Interval='30',
+        Timeout='5',
+        ),
+    Listeners=[
+        elasticloadbalancing.Listener(
+            LoadBalancerPort='8500',
+            InstancePort='8500',
+            Protocol='HTTP',
+            ),
+        ],
+    Scheme='internal',
+    SecurityGroups=[Ref(CONSUL_HTTP_API_SECURITY_GROUP)],
     Subnets=[Ref(SUBNET)],
     ))
 
@@ -284,7 +314,11 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
     ImageId=FindInMap('RegionMap', Ref(AWS_REGION), 'AMI'),
     InstanceType=Ref(INSTANCE_TYPE),
     KeyName=Ref(KEY_NAME),
-    SecurityGroups=[Ref(SECURITY_GROUP), Ref(API_SERVER_SECURITY_GROUP)],
+    SecurityGroups=[
+        Ref(SECURITY_GROUP),
+        Ref(API_SERVER_SECURITY_GROUP),
+        Ref(CONSUL_HTTP_API_SECURITY_GROUP)
+        ],
     UserData=Base64(Join('', [
         '#cloud-config\n\n',
         'coreos:\n',
@@ -588,11 +622,15 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '          - hostPort: 8301\n',
         '            containerPort: 8301\n',
         '            protocol: TCP\n',
-        '            hostIP: 10.10.6.77\n',
+        '            hostIP: $private_ipv4\n',
         '          - hostPort: 8301\n',
         '            containerPort: 8301\n',
         '            protocol: UDP\n',
-        '            hostIP: 10.10.6.77\n',
+        '            hostIP: $private_ipv4\n',
+        '          - hostPort: 8500\n',
+        '            containerPort: 8500\n',
+        '            protocol: TCP\n',
+        '            hostIP: $private_ipv4\n',
         '        - name: kube2consul\n',
         '          image: jmccarty3/kube2consul:latest\n',
         '          command:\n',
@@ -607,7 +645,10 @@ AUTO_SCALING_GROUP = TEMPLATE.add_resource(autoscaling.AutoScalingGroup(
     DesiredCapacity='1',
     Tags=[autoscaling.Tag('Name', 'Kubernetes Master', True)],
     LaunchConfigurationName=Ref(LAUNCH_CONFIGURATION),
-    LoadBalancerNames=[Ref(API_SERVER_LOAD_BALANCER)],
+    LoadBalancerNames=[
+        Ref(API_SERVER_LOAD_BALANCER),
+        Ref(CONSUL_HTTP_API_LOAD_BALANCER)
+        ],
     MinSize='1',
     MaxSize='3',
     VPCZoneIdentifier=[Ref(SUBNET)],
@@ -622,6 +663,11 @@ AUTO_SCALING_GROUP = TEMPLATE.add_resource(autoscaling.AutoScalingGroup(
 TEMPLATE.add_output(Output(
     'APIServer',
     Value=Join('', ['https://', GetAtt(API_SERVER_LOAD_BALANCER, 'DNSName'), ':6443']),
+    ))
+
+TEMPLATE.add_output(Output(
+    'ConsulHTTPAPI',
+    Value=Join('', ['http://', GetAtt(CONSUL_HTTP_API_LOAD_BALANCER, 'DNSName'), ':8500']),
     ))
 
 if __name__ == '__main__':
