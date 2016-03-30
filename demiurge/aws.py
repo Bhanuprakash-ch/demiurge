@@ -175,6 +175,18 @@ SECURITY_GROUP = TEMPLATE.add_resource(ec2.SecurityGroup(
             ),
         ec2.SecurityGroupRule(
             IpProtocol='tcp',
+            FromPort='8301',
+            ToPort='8301',
+            CidrIp='0.0.0.0/0',
+            ),
+        ec2.SecurityGroupRule(
+            IpProtocol='udp',
+            FromPort='8301',
+            ToPort='8301',
+            CidrIp='0.0.0.0/0',
+            ),
+        ec2.SecurityGroupRule(
+            IpProtocol='tcp',
             FromPort='30000',
             ToPort='32767',
             CidrIp='0.0.0.0/0',
