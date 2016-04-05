@@ -32,6 +32,7 @@ CLIENT = boto3.client(
     )
 
 STACK_NAME = 'TAP-Kubernetes-{}'
+MAX_RETRIES = 10
 
 def __cluster(stack):
     cluster = {}
@@ -43,6 +44,9 @@ def __cluster(stack):
             cluster['username'] = parameter['ParameterValue']
         elif parameter['ParameterKey'] == 'Password':
             cluster['password'] = parameter['ParameterValue']
+        elif (parameter['ParameterKey'] == 'VPC' and
+              parameter['ParameterValue'] != APPLICATION.config['VPC']):
+            return None
 
     for output in stack['Outputs']:
         if output['OutputKey'] == 'APIServer':
@@ -60,7 +64,10 @@ def search():
 
     for stack in response['Stacks']:
         if re.match(r'(CREATE|UPDATE)_COMPLETE', stack['StackStatus']):
-            clusters.append(__cluster(stack))
+            cluster = __cluster(stack)
+
+            if cluster:
+                clusters.append(cluster)
 
     return clusters, 200
 
@@ -127,7 +134,21 @@ def put(cluster_name):
         else:
             raise
 
-    return NoContent, 202
+    in_progress = False
+    retries = 0
+
+    while not in_progress and retries < MAX_RETRIES:
+        response = CLIENT.describe_stacks(StackName=STACK_NAME.format(cluster_name))
+
+        for stack in response['Stacks']:
+            in_progress = bool(re.match(r'(CREATE|UPDATE)_IN_PROGRESS', stack['StackStatus']))
+
+        # SEE: http://docs.aws.amazon.com/general/latest/gr/api-retries.html
+        secs = 2**retries*0.1
+        sleep(secs)
+        retries += 1
+
+    return NoContent, 202 if in_progress else 500
 
 @AUTH.login_required
 def delete(cluster_name):
