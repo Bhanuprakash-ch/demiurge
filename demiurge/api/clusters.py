@@ -15,11 +15,12 @@
 #
 
 import re
-import boto3
-import fauxfactory
+from time import sleep
 
-from connexion import NoContent
+import boto3
 from botocore.exceptions import ClientError
+import fauxfactory
+from connexion import NoContent
 
 from .. import APP, APPLICATION, AUTH
 from ..aws import TEMPLATE
