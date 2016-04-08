@@ -324,6 +324,8 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
     UserData=Base64(Join('', [
         '#cloud-config\n\n',
         'coreos:\n',
+        '  update:\n',
+        '    reboot-strategy: off\n',
         '  etcd2:\n',
         '    advertise-client-urls: http://$private_ipv4:2379\n',
         '    initial-advertise-peer-urls: http://$private_ipv4:2380\n',
