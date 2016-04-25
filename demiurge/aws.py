@@ -238,8 +238,8 @@ API_SERVER_SECURITY_GROUP = TEMPLATE.add_resource(ec2.SecurityGroup(
     SecurityGroupIngress=[
         ec2.SecurityGroupRule(
             IpProtocol='tcp',
-            FromPort='6443',
-            ToPort='6443',
+            FromPort='443',
+            ToPort='443',
             CidrIp='0.0.0.0/0',
             ),
         ],
@@ -249,7 +249,7 @@ API_SERVER_SECURITY_GROUP = TEMPLATE.add_resource(ec2.SecurityGroup(
 API_SERVER_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadBalancer(
     'APIServerLoadBalancer',
     HealthCheck=elasticloadbalancing.HealthCheck(
-        Target='TCP:6443',
+        Target='TCP:443',
         HealthyThreshold='3',
         UnhealthyThreshold='5',
         Interval='30',
@@ -257,8 +257,8 @@ API_SERVER_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadBalanc
         ),
     Listeners=[
         elasticloadbalancing.Listener(
-            LoadBalancerPort='6443',
-            InstancePort='6443',
+            LoadBalancerPort='443',
+            InstancePort='443',
             Protocol='TCP',
             ),
         ],
@@ -404,11 +404,10 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '          content: |\n',
         '            [Service]\n',
         '            ExecStartPre=/usr/bin/mkdir -p /etc/kubernetes/manifests\n\n',
-        '            Environment=KUBELET_VERSION=v1.2.0_coreos.1\n',
+        '            Environment=KUBELET_VERSION=v1.2.2_coreos.0\n',
         '            ExecStart=\n',
         '            ExecStart=/usr/lib/coreos/kubelet-wrapper \\\n',
         '              --api-servers=http://127.0.0.1:8080 \\\n',
-        '              --register-node=true \\\n',
         '              --allow-privileged=true \\\n',
         '              --config=/etc/kubernetes/manifests\n',
         '            Restart=always\n',
@@ -436,13 +435,14 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '        hostNetwork: true\n',
         '        containers:\n',
         '        - name: kube-apiserver\n',
-        '          image: quay.io/coreos/hyperkube:v1.2.0_coreos.1\n',
+        '          image: quay.io/coreos/hyperkube:v1.2.2_coreos.0\n',
         '          command:\n',
         '          - /hyperkube\n',
         '          - apiserver\n',
         '          - --etcd-servers=http://127.0.0.1:2379\n',
         '          - --allow-privileged=true\n',
         '          - --service-cluster-ip-range=10.3.0.0/24\n',
+        '          - --secure-port=443\n',
         '          - --admission-control=NamespaceLifecycle,LimitRanger,SecurityContextDeny,',
         'ResourceQuota\n',
         '          - --runtime-config=extensions/v1beta1/deployments=true,',
@@ -481,7 +481,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '        hostNetwork: true\n',
         '        containers:\n',
         '        - name: kube-proxy\n',
-        '          image: quay.io/coreos/hyperkube:v1.2.0_coreos.1\n',
+        '          image: quay.io/coreos/hyperkube:v1.2.2_coreos.0\n',
         '          command:\n',
         '          - /hyperkube\n',
         '          - proxy\n',
@@ -508,7 +508,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '        hostNetwork: true\n',
         '        containers:\n',
         '        - name: kube-controller-manager\n',
-        '          image: quay.io/coreos/hyperkube:v1.2.0_coreos.1\n',
+        '          image: quay.io/coreos/hyperkube:v1.2.2_coreos.0\n',
         '          command:\n',
         '          - /hyperkube\n',
         '          - controller-manager\n',
@@ -540,7 +540,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '        hostNetwork: true\n',
         '        containers:\n',
         '        - name: kube-scheduler\n',
-        '          image: quay.io/coreos/hyperkube:v1.2.0_coreos.1\n',
+        '          image: quay.io/coreos/hyperkube:v1.2.2_coreos.0\n',
         '          command:\n',
         '          - /hyperkube\n',
         '          - scheduler\n',
@@ -616,7 +616,7 @@ AUTO_SCALING_GROUP = TEMPLATE.add_resource(autoscaling.AutoScalingGroup(
 
 TEMPLATE.add_output(Output(
     'APIServer',
-    Value=Join('', ['https://', GetAtt(API_SERVER_LOAD_BALANCER, 'DNSName'), ':6443']),
+    Value=Join('', ['https://', GetAtt(API_SERVER_LOAD_BALANCER, 'DNSName')]),
     ))
 
 TEMPLATE.add_output(Output(
