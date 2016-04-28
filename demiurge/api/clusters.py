@@ -21,9 +21,12 @@ import boto3
 from botocore.exceptions import ClientError
 import fauxfactory
 from connexion import NoContent
+import logging
 
 from .. import APP, APPLICATION, AUTH
 from ..aws import TEMPLATE
+
+logger = logging.getLogger('clusters.api')
 
 CLIENT = boto3.client(
     'cloudformation',
@@ -85,7 +88,11 @@ def get(cluster_name):
             elif re.match(r'DELETE_(IN_PROGRESS|COMPLETE)', stack['StackStatus']):
                 return NoContent, 404
             else:
-                return stack['StackStatusReason'], 500
+                error_msg = stack['StackName'] + ': ' + stack['StackStatus']
+                if 'StackStatusReason' in stack:
+                    error_msg += ': ' + stack['StackStatusReason']
+                logger.error(error_msg)
+                return NoContent, 404
 
     return NoContent, 404
 
