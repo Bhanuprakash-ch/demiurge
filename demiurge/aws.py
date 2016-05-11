@@ -140,7 +140,22 @@ POLICY = TEMPLATE.add_resource(iam.PolicyType(
                 ),
             awacs.aws.Statement(
                 Effect=awacs.aws.Allow,
+                Action=[awacs.ec2.EC2Action('TagVolume')],
+                Resource=['*'],
+            ),
+            awacs.aws.Statement(
+                Effect=awacs.aws.Allow,
                 Action=[awacs.ec2.EC2Action('AttachVolume')],
+                Resource=['*'],
+            ),
+            awacs.aws.Statement(
+                Effect=awacs.aws.Allow,
+                Action=[awacs.ec2.EC2Action('CreateVolume')],
+                Resource=['*'],
+            ),
+            awacs.aws.Statement(
+                Effect=awacs.aws.Allow,
+                Action=[awacs.ec2.EC2Action('DeleteVolume')],
                 Resource=['*'],
             ),
             awacs.aws.Statement(
