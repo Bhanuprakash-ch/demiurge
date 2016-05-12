@@ -409,7 +409,6 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '              --register-node=true \\\n',
         '              --allow-privileged=true \\\n',
         '              --cluster-dns=', Ref(CONSUL_JOIN), ' \\\n',
-        '              --cluster-domain=cluster.service.consul \\\n',
         '              --config=/etc/kubernetes/manifests\n',
         '            Restart=always\n',
         '            RestartSec=10\n',
