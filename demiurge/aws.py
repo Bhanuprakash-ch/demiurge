@@ -135,39 +135,23 @@ POLICY = TEMPLATE.add_resource(iam.PolicyType(
         Statement=[
             awacs.aws.Statement(
                 Effect=awacs.aws.Allow,
-                Action=[awacs.ec2.EC2Action('Describe*')],
+                Action=[
+                    awacs.ec2.EC2Action('Describe*'),
+                    awacs.ec2.EC2Action('CreateTags'),
+                    awacs.ec2.EC2Action('AttachVolume'),
+                    awacs.ec2.EC2Action('CreateVolume'),
+                    awacs.ec2.EC2Action('DeleteVolume'),
+                    awacs.ec2.EC2Action('DetachVolume'),
+                ],
                 Resource=['*'],
                 ),
             awacs.aws.Statement(
                 Effect=awacs.aws.Allow,
-                Action=[awacs.ec2.EC2Action('TagVolume')],
+                Action=[
+                    awacs.aws.Action('autoscaling', 'Describe*'),
+                ],
                 Resource=['*'],
             ),
-            awacs.aws.Statement(
-                Effect=awacs.aws.Allow,
-                Action=[awacs.ec2.EC2Action('AttachVolume')],
-                Resource=['*'],
-            ),
-            awacs.aws.Statement(
-                Effect=awacs.aws.Allow,
-                Action=[awacs.ec2.EC2Action('CreateVolume')],
-                Resource=['*'],
-            ),
-            awacs.aws.Statement(
-                Effect=awacs.aws.Allow,
-                Action=[awacs.ec2.EC2Action('DeleteVolume')],
-                Resource=['*'],
-            ),
-            awacs.aws.Statement(
-                Effect=awacs.aws.Allow,
-                Action=[awacs.ec2.EC2Action('DetachVolume')],
-                Resource=['*'],
-            ),
-            awacs.aws.Statement(
-                Effect=awacs.aws.Allow,
-                Action=[awacs.aws.Action('autoscaling', 'Describe*')],
-                Resource=['*'],
-                ),
             ],
         ),
     Roles=[Ref(ROLE)],
