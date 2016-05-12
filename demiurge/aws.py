@@ -142,6 +142,7 @@ POLICY = TEMPLATE.add_resource(iam.PolicyType(
                     awacs.ec2.EC2Action('CreateVolume'),
                     awacs.ec2.EC2Action('DeleteVolume'),
                     awacs.ec2.EC2Action('DetachVolume'),
+                    awacs.ec2.EC2Action('SecurityGroup'),
                 ],
                 Resource=['*'],
                 ),
@@ -149,6 +150,7 @@ POLICY = TEMPLATE.add_resource(iam.PolicyType(
                 Effect=awacs.aws.Allow,
                 Action=[
                     awacs.aws.Action('autoscaling', 'Describe*'),
+                    awacs.aws.Action('elasticloadbalancing', 'Describe*'),
                 ],
                 Resource=['*'],
             ),
