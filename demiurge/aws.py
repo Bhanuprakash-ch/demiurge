@@ -426,6 +426,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '            ExecStart=/usr/lib/coreos/kubelet-wrapper \\\n',
         '              --api-servers=http://127.0.0.1:8080 \\\n',
         '              --allow-privileged=true \\\n',
+        '              --cluster-dns=', Ref(CONSUL_JOIN), ' \\\n',
         '              --cloud-provider=aws \\\n',
         '              --config=/etc/kubernetes/manifests\n',
         '            Restart=always\n',
