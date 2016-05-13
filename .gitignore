@@ -90,3 +90,13 @@ target/
 
 # Cloud Foundry Python Buildpack
 vendor/
+
+# Shared credentials file
+.aws/credentials
+
+# AWS config file
+.aws/config
+
+# Boto2 config file
+boto.cfg
+.boto
