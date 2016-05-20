@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='demiurge',
-    version='0.2.7',
+    version='0.7.0',
     packages=find_packages(),
     install_requires=[
         'awacs',
