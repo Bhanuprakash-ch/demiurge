@@ -41,6 +41,9 @@ MAX_RETRIES = 10
 def __cluster(stack):
     cluster = {}
 
+    if 'Parameters' not in stack:
+        return None
+
     for parameter in stack['Parameters']:
         if parameter['ParameterKey'] == 'ClusterName':
             cluster['cluster_name'] = parameter['ParameterValue']
