@@ -1,0 +1,9 @@
+awacs
+boto3
+click
+connexion
+fauxfactory
+Flask-HTTPAuth
+troposphere
+pyopenssl
+cffi

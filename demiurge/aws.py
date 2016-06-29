@@ -23,6 +23,7 @@ from troposphere.constants import *
 
 from troposphere import (AWS_REGION, ec2, iam, Base64, FindInMap, Join, Parameter, Ref, Template,
                          autoscaling, policies, elasticloadbalancing, GetAtt, Output)
+from cert import create_cert
 
 import awacs.ec2
 import awacs.iam
@@ -313,6 +314,20 @@ CONSUL_HTTP_API_LOAD_BALANCER = TEMPLATE.add_resource(elasticloadbalancing.LoadB
     Subnets=[Ref(SUBNET)],
     ))
 
+(CA_KEY_PEM, CA_CERT_PEM, CA_KEY, CA_CERT) = create_cert('kube-ca')
+api_san_list = [
+    'DNS:kubernetes',
+    'DNS:kubernetes.default',
+    'DNS:kubernetes.default.svc',
+    'DNS:kubernetes.default.svc.cluster.local',
+    'DNS:*.*.elb.amazonaws.com',
+    'DNS:*.*.compute.internal',
+    'DNS:*.ec2.internal',
+    'IP:10.3.0.1',
+    ]
+(API_KEY_PEM, API_CERT_PEM, API_KEY, API_CERT) = create_cert('kube-apiserver',
+        san_list=api_san_list, sign_key=CA_KEY, sign_cert=CA_CERT)
+
 LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
     'LaunchConfiguration',
     BlockDeviceMappings=[
@@ -443,6 +458,21 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '-XPOST -d\\\'{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"kube-system"}}\\\'',
         ' -sS "http://127.0.0.1:8080/api/v1/namespaces" && break || sleep 20; done\'\n',
         'write_files:\n',
+        '  - path: /etc/kubernetes/ssl/ca.pem\n',
+        '    permissions: \'0600\'\n',
+        '    content: |\n',
+        ''.join(['      {}\n'.format(line) for line in CA_CERT_PEM.split('\n')]).rstrip('\n '),
+        '\n',
+        '  - path: /etc/kubernetes/ssl/apiserver.pem\n',
+        '    permissions: \'0600\'\n',
+        '    content: |\n',
+        ''.join(['      {}\n'.format(line) for line in API_CERT_PEM.split('\n')]).rstrip('\n '),
+        '\n',
+        '  - path: /etc/kubernetes/ssl/apiserver-key.pem\n',
+        '    permissions: \'0600\'\n',
+        '    content: |\n',
+        ''.join(['      {}\n'.format(line) for line in API_KEY_PEM.split('\n')]).rstrip('\n '),
+        '\n',
         '  - path: /etc/kubernetes/manifests/kube-apiserver.yaml\n',
         '    content: |\n',
         '      apiVersion: v1\n',
@@ -469,6 +499,10 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '          - --external-hostname=', GetAtt(API_SERVER_LOAD_BALANCER, 'DNSName'), '\n',
         '          - --basic-auth-file=/srv/kubernetes/basic_auth.csv\n',
         '          - --cloud-provider=aws\n',
+        '          - --tls-cert-file=/etc/kubernetes/ssl/apiserver.pem\n',
+        '          - --tls-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem\n',
+        '          - --client-ca-file=/etc/kubernetes/ssl/ca.pem\n',
+        '          - --service-account-key-file=/etc/kubernetes/ssl/apiserver-key.pem\n',
         '          ports:\n',
         '          - containerPort: 443\n',
         '            hostPort: 443\n',
@@ -477,6 +511,9 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '            hostPort: 8080\n',
         '            name: local\n',
         '          volumeMounts:\n',
+        '          - mountPath: /etc/kubernetes/ssl\n',
+        '            name: ssl-certs-generated\n',
+        '            readOnly: true\n',
         '          - mountPath: /etc/ssl/certs\n',
         '            name: ssl-certs-host\n',
         '            readOnly: true\n',
@@ -484,6 +521,9 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '            name: basic-auth-file\n',
         '            readOnly: true\n',
         '        volumes:\n',
+        '        - hostPath:\n',
+        '            path: /etc/kubernetes/ssl\n',
+        '          name: ssl-certs-generated\n',
         '        - hostPath:\n',
         '            path: /usr/share/ca-certificates\n',
         '          name: ssl-certs-host\n',
@@ -537,6 +577,8 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '          - --service-sync-period=10m\n',
         '          - --node-sync-period=5m\n',
         '          - --cloud-provider=aws\n',
+        '          - --service-account-private-key-file=/etc/kubernetes/ssl/apiserver-key.pem\n',
+        '          - --root-ca-file=/etc/kubernetes/ssl/ca.pem\n',
         '          livenessProbe:\n',
         '            httpGet:\n',
         '              host: 127.0.0.1\n',
@@ -545,10 +587,16 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '            initialDelaySeconds: 15\n',
         '            timeoutSeconds: 1\n',
         '          volumeMounts:\n',
+        '          - mountPath: /etc/kubernetes/ssl\n',
+        '            name: ssl-certs-generated\n',
+        '            readOnly: true\n',
         '          - mountPath: /etc/ssl/certs\n',
         '            name: ssl-certs-host\n',
         '            readOnly: true\n',
         '        volumes:\n',
+        '        - hostPath:\n',
+        '            path: /etc/kubernetes/ssl\n',
+        '          name: ssl-certs-generated\n',
         '        - hostPath:\n',
         '            path: /usr/share/ca-certificates\n',
         '          name: ssl-certs-host\n',
@@ -645,6 +693,16 @@ TEMPLATE.add_output(Output(
 TEMPLATE.add_output(Output(
     'ConsulHTTPAPI',
     Value=Join('', ['http://', GetAtt(CONSUL_HTTP_API_LOAD_BALANCER, 'DNSName'), ':8500']),
+    ))
+
+TEMPLATE.add_output(Output(
+    'CAKey',
+    Value=CA_KEY_PEM,
+    ))
+
+TEMPLATE.add_output(Output(
+    'CACert',
+    Value=CA_CERT_PEM,
     ))
 
 if __name__ == '__main__':

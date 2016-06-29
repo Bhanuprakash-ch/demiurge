@@ -28,6 +28,7 @@ setup(
         'fauxfactory',
         'Flask-HTTPAuth',
         'troposphere',
+        'pyopenssl',
         ],
     author='Maciej Strzelecki',
     author_email='maciej.strzelecki@intel.com',
