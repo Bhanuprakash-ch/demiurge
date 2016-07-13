@@ -16,3 +16,4 @@
 ---
 applications:
 - command: demiurge
+  buildpack: https://github.com/cloudfoundry/python-buildpack#v1.5.8
