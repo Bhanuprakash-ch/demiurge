@@ -57,6 +57,12 @@ SUBNET = TEMPLATE.add_parameter(Parameter(
     Type=SUBNET_ID,
     ))
 
+KUBERNETES_SERVICE_NETWORK = TEMPLATE.add_parameter(Parameter(
+    'KubernetesServiceNetwork',
+    Type=STRING,
+    Default='10.3.0.0/24',
+    ))
+
 FLANNEL_NETWORK = TEMPLATE.add_parameter(Parameter(
     'FlannelNetwork',
     Type=STRING,
@@ -490,7 +496,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '          - apiserver\n',
         '          - --etcd-servers=http://127.0.0.1:2379\n',
         '          - --allow-privileged=true\n',
-        '          - --service-cluster-ip-range=10.3.0.0/24\n',
+        '          - --service-cluster-ip-range=', Ref(KUBERNETES_SERVICE_NETWORK), '\n',
         '          - --secure-port=443\n',
         '          - --admission-control=NamespaceLifecycle,LimitRanger,SecurityContextDeny,',
         'ResourceQuota\n',
