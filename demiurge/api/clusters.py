@@ -51,6 +51,11 @@ def __cluster(stack):
             cluster['username'] = parameter['ParameterValue']
         elif parameter['ParameterKey'] == 'Password':
             cluster['password'] = parameter['ParameterValue']
+        elif 'KubernetesServiceNetwork' in parameter:
+            if parameter['ParameterKey'] == 'KubernetesServiceNetwork':
+                cluster['kubernetes_service_network'] = parameter['ParameterValue']
+            else:
+                 cluster['kubernetes_service_network'] = '10.3.0.0/24'
         elif (parameter['ParameterKey'] == 'VPC' and
               parameter['ParameterValue'] != APPLICATION.config['VPC']):
             return None
@@ -99,13 +104,36 @@ def get(cluster_name):
 
     return NoContent, 404
 
+def __get_next_network():
+    response = CLIENT.describe_stacks()
+    stacks = response['Stacks']
+    for stack in stacks:
+        if stack is not None:
+            clusters = (__cluster(stack))
+    networks = [cluster['kubernetes_service_network'] for cluster in clusters]
+    if not networks:
+        return 0
+
+    for subnet_no in range(0, 24):
+        subnet = '10.3.{}.0/24'.format(subnet_no)
+        if not subnet in networks:
+            return subnet_no
+
 @AUTH.login_required
 def put(cluster_name):
+    subnet_no = __get_next_network()
+    if subnet_no is None:
+        return NoContent, 409
+
     try:
         CLIENT.create_stack(
             StackName=STACK_NAME.format(cluster_name),
             TemplateBody=TEMPLATE.to_json(),
             Parameters=[
+                {
+                    'ParameterKey': 'KubernetesServiceNetwork',
+                    'ParameterValue': '10.3.{}.0/24'.format(subnet_no),
+                },
                 {
                     'ParameterKey': 'VPC',
                     'ParameterValue': APPLICATION.config['VPC'],
