@@ -153,6 +153,7 @@ POLICY = TEMPLATE.add_resource(iam.PolicyType(
                     awacs.ec2.EC2Action('CreateRoute'),
                     awacs.ec2.EC2Action('DeleteRoute'),
                     awacs.ec2.EC2Action('ReplaceRoute'),
+                    awacs.ec2.EC2Action('ModifyInstanceAttribute'),
                 ],
                 Resource=['*'],
                 ),
