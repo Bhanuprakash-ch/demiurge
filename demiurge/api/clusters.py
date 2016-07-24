@@ -117,7 +117,7 @@ def __get_next_network():
         if 'kubernetes_service_network' in cluster:
             networks.append(cluster['kubernetes_service_network'])
 
-    for subnet_no in range(1, 24):
+    for subnet_no in range(1, 254):
         subnet = '10.3.{}.0/24'.format(subnet_no)
         if not subnet in networks:
             return subnet_no
@@ -136,6 +136,14 @@ def put(cluster_name):
                 {
                     'ParameterKey': 'KubernetesServiceNetwork',
                     'ParameterValue': '10.3.{}.0/24'.format(subnet_no),
+                },
+                {
+                    'ParameterKey': 'KubernetesServiceNetworkMin',
+                    'ParameterValue': '10.3.{}.0'.format(subnet_no),
+                },
+                {
+                    'ParameterKey': 'KubernetesServiceNetworkMax',
+                    'ParameterValue': '10.3.{}.0'.format(subnet_no),
                 },
                 {
                     'ParameterKey': 'VPC',

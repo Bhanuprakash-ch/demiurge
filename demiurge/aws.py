@@ -63,6 +63,18 @@ KUBERNETES_SERVICE_NETWORK = TEMPLATE.add_parameter(Parameter(
     Default='10.3.0.0/24',
     ))
 
+KUBERNETES_SERVICE_NETWORK_MIN = TEMPLATE.add_parameter(Parameter(
+    'KubernetesServiceNetworkMin',
+    Type=STRING,
+    Default='10.3.0.0',
+    ))
+
+KUBERNETES_SERVICE_NETWORK_MAX = TEMPLATE.add_parameter(Parameter(
+    'KubernetesServiceNetworkMax',
+    Type=STRING,
+    Default='10.3.0.0',
+    ))
+
 FLANNEL_NETWORK = TEMPLATE.add_parameter(Parameter(
     'FlannelNetwork',
     Type=STRING,
@@ -437,7 +449,9 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         Ref(FLANNEL_NETWORK), '", "SubnetLen": ', Ref(FLANNEL_SUBNET_LEN), ', "SubnetMin": "',
         Ref(FLANNEL_SUBNET_MIN), '", "SubnetMax": "', Ref(FLANNEL_SUBNET_MAX), '" }\'\n',
         '            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/k8s/config \'{ "Network": "',
-        Ref(KUBERNETES_SERVICE_NETWORK), '", "Backend": {"Type": "aws-vpc"}}\'\n',
+        Ref(KUBERNETES_SERVICE_NETWORK), '", "SubnetLen": 24, "SubnetMin": "',
+        Ref(KUBERNETES_SERVICE_NETWORK_MIN), '", "SubnetMax": "', Ref(KUBERNETES_SERVICE_NETWORK_MAX), 
+        '", "Backend": {"Type": "aws-vpc"}}\'\n',
         '            ExecStart=\n',
         '            ExecStart=/usr/libexec/sdnotify-proxy /run/flannel/sd.sock \\\n',
         '              /usr/bin/docker run --net=host --privileged=true --rm \\\n',
