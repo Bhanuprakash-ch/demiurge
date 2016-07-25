@@ -211,6 +211,18 @@ SECURITY_GROUP = TEMPLATE.add_resource(ec2.SecurityGroup(
             ),
         ec2.SecurityGroupRule(
             IpProtocol='tcp',
+            FromPort='5672',
+            ToPort='5672',
+            CidrIp='0.0.0.0/0',
+            ),
+        ec2.SecurityGroupRule(
+            IpProtocol='tcp',
+            FromPort='8080',
+            ToPort='8080',
+            CidrIp='0.0.0.0/0',
+            ),
+        ec2.SecurityGroupRule(
+            IpProtocol='tcp',
             FromPort='8301',
             ToPort='8301',
             CidrIp='0.0.0.0/0',
@@ -219,6 +231,12 @@ SECURITY_GROUP = TEMPLATE.add_resource(ec2.SecurityGroup(
             IpProtocol='udp',
             FromPort='8301',
             ToPort='8301',
+            CidrIp='0.0.0.0/0',
+            ),
+        ec2.SecurityGroupRule(
+            IpProtocol='tcp',
+            FromPort='9080',
+            ToPort='9080',
             CidrIp='0.0.0.0/0',
             ),
         ec2.SecurityGroupRule(
