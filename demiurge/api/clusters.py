@@ -51,20 +51,18 @@ def __cluster(stack):
             cluster['username'] = parameter['ParameterValue']
         elif parameter['ParameterKey'] == 'Password':
             cluster['password'] = parameter['ParameterValue']
-        elif 'KubernetesServiceNetwork' in parameter:
-            if parameter['ParameterKey'] == 'KubernetesServiceNetwork':
+        elif parameter['ParameterKey'] == 'KubernetesServiceNetwork':
                 cluster['kubernetes_service_network'] = parameter['ParameterValue']
-            else:
-                 cluster['kubernetes_service_network'] = '10.3.0.0/24'
         elif (parameter['ParameterKey'] == 'VPC' and
               parameter['ParameterValue'] != APPLICATION.config['VPC']):
             return None
 
-    for output in stack['Outputs']:
-        if output['OutputKey'] == 'APIServer':
-            cluster['api_server'] = output['OutputValue']
-        if output['OutputKey'] == 'ConsulHTTPAPI':
-            cluster['consul_http_api'] = output['OutputValue']
+    if 'Outputs' in stack:
+         for output in stack['Outputs']:
+             if output['OutputKey'] == 'APIServer':
+                 cluster['api_server'] = output['OutputValue']
+             if output['OutputKey'] == 'ConsulHTTPAPI':
+                 cluster['consul_http_api'] = output['OutputValue']
 
     return cluster
 
@@ -105,16 +103,21 @@ def get(cluster_name):
     return NoContent, 404
 
 def __get_next_network():
+    clusters = []
+    networks = []
     response = CLIENT.describe_stacks()
     stacks = response['Stacks']
     for stack in stacks:
         if stack is not None:
-            clusters = (__cluster(stack))
-    networks = [cluster['kubernetes_service_network'] for cluster in clusters]
-    if not networks:
-        return 0
+            cluster = (__cluster(stack))
+            if cluster:
+                clusters.append(cluster)
 
-    for subnet_no in range(0, 24):
+    for cluster in clusters:
+        if 'kubernetes_service_network' in cluster:
+            networks.append(cluster['kubernetes_service_network'])
+
+    for subnet_no in range(1, 254):
         subnet = '10.3.{}.0/24'.format(subnet_no)
         if not subnet in networks:
             return subnet_no
@@ -133,6 +136,14 @@ def put(cluster_name):
                 {
                     'ParameterKey': 'KubernetesServiceNetwork',
                     'ParameterValue': '10.3.{}.0/24'.format(subnet_no),
+                },
+                {
+                    'ParameterKey': 'KubernetesServiceNetworkMin',
+                    'ParameterValue': '10.3.{}.0'.format(subnet_no),
+                },
+                {
+                    'ParameterKey': 'KubernetesServiceNetworkMax',
+                    'ParameterValue': '10.3.{}.0'.format(subnet_no),
                 },
                 {
                     'ParameterKey': 'VPC',

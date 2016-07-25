@@ -63,6 +63,18 @@ KUBERNETES_SERVICE_NETWORK = TEMPLATE.add_parameter(Parameter(
     Default='10.3.0.0/24',
     ))
 
+KUBERNETES_SERVICE_NETWORK_MIN = TEMPLATE.add_parameter(Parameter(
+    'KubernetesServiceNetworkMin',
+    Type=STRING,
+    Default='10.3.0.0',
+    ))
+
+KUBERNETES_SERVICE_NETWORK_MAX = TEMPLATE.add_parameter(Parameter(
+    'KubernetesServiceNetworkMax',
+    Type=STRING,
+    Default='10.3.0.0',
+    ))
+
 FLANNEL_NETWORK = TEMPLATE.add_parameter(Parameter(
     'FlannelNetwork',
     Type=STRING,
@@ -150,6 +162,10 @@ POLICY = TEMPLATE.add_resource(iam.PolicyType(
                     awacs.ec2.EC2Action('DeleteVolume'),
                     awacs.ec2.EC2Action('DetachVolume'),
                     awacs.ec2.EC2Action('SecurityGroup'),
+                    awacs.ec2.EC2Action('CreateRoute'),
+                    awacs.ec2.EC2Action('DeleteRoute'),
+                    awacs.ec2.EC2Action('ReplaceRoute'),
+                    awacs.ec2.EC2Action('ModifyInstanceAttribute'),
                 ],
                 Resource=['*'],
                 ),
@@ -429,9 +445,25 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '        - name: 50-network-config.conf\n',
         '          content: |\n',
         '            [Service]\n',
-        '            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config \'{ "Network": "',
+        '            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/flannel/config \'{ "Network": "',
         Ref(FLANNEL_NETWORK), '", "SubnetLen": ', Ref(FLANNEL_SUBNET_LEN), ', "SubnetMin": "',
         Ref(FLANNEL_SUBNET_MIN), '", "SubnetMax": "', Ref(FLANNEL_SUBNET_MAX), '" }\'\n',
+        '            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/k8s/config \'{ "Network": "',
+        Ref(KUBERNETES_SERVICE_NETWORK), '", "SubnetLen": 24, "SubnetMin": "',
+        Ref(KUBERNETES_SERVICE_NETWORK_MIN), '", "SubnetMax": "', Ref(KUBERNETES_SERVICE_NETWORK_MAX), 
+        '", "Backend": {"Type": "aws-vpc"}}\'\n',
+        '            ExecStart=\n',
+        '            ExecStart=/usr/libexec/sdnotify-proxy /run/flannel/sd.sock \\\n',
+        '              /usr/bin/docker run --net=host --privileged=true --rm \\\n',
+        '              --volume=/run/flannel:/run/flannel \\\n',
+        '              --env=NOTIFY_SOCKET=/run/flannel/sd.sock \\\n',
+        '              --env=AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \\\n',
+        '              --env=AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \\\n',
+        '              --env-file=${FLANNEL_ENV_FILE} \\\n',
+        '              --volume=/usr/share/ca-certificates:/etc/ssl/certs:ro \\\n',
+        '              --volume=${ETCD_SSL_DIR}:${ETCD_SSL_DIR}:ro \\\n',
+        '              ${FLANNEL_IMG}:${FLANNEL_VER} /opt/bin/flanneld --ip-masq=true \\\n',
+        '              --networks=flannel,k8s\n',
         '      command: start\n',
         '    - name: kubelet.service\n',
         '      command: start\n',
