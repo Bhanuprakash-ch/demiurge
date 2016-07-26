@@ -482,6 +482,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '              --volume=${ETCD_SSL_DIR}:${ETCD_SSL_DIR}:ro \\\n',
         '              ${FLANNEL_IMG}:${FLANNEL_VER} /opt/bin/flanneld --ip-masq=true \\\n',
         '              --networks=flannel,k8s\n',
+        '            ExecStartPost=/usr/bin/systemctl restart docker.service\n',
         '      command: start\n',
         '    - name: kubelet.service\n',
         '      command: start\n',
