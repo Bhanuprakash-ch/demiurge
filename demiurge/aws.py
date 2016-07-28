@@ -550,7 +550,7 @@ LAUNCH_CONFIGURATION = TEMPLATE.add_resource(autoscaling.LaunchConfiguration(
         '          - --service-cluster-ip-range=', Ref(KUBERNETES_SERVICE_NETWORK), '\n',
         '          - --secure-port=443\n',
         '          - --admission-control=NamespaceLifecycle,LimitRanger,SecurityContextDeny,',
-        'ResourceQuota\n',
+        'ResourceQuota,ServiceAccount\n',
         '          - --runtime-config=extensions/v1beta1/deployments=true,',
         'extensions/v1beta1/daemonsets=true\n',
         '          - --external-hostname=', GetAtt(API_SERVER_LOAD_BALANCER, 'DNSName'), '\n',
