@@ -18,7 +18,7 @@ import connexion
 from connexion.resolver import RestyResolver
 from flask_httpauth import HTTPBasicAuth
 
-__version__ = '0.8.2'
+__version__ = '0.8.3'
 
 APP = connexion.App(__name__, specification_dir='swagger/', arguments={'version': __version__})
 APPLICATION = APP.app
